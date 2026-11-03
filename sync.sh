@@ -2,7 +2,7 @@
 set -e
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-MSG="${1:-Auto-Sync: gravity-matrix Update}"
+MSG="${1:-Auto-Sync: basename "$PWD"}"
 
 echo "=========================================="
 echo "  Universal Sync: $(basename "$PWD")"
