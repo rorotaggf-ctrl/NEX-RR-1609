@@ -6,10 +6,10 @@ The project encompasses the evolution from an initial discrete 16-bit concept (`
 
 ---
 
-## Dedication: The 1609 Astronomical Revolution
+## Historic Fun Fact & Dedication: The Year 1609
 
-> **1609: Das Fernrohr und die Astronomische Revolution**  
-> Johannes Kepler veröffentlicht die *Astronomia nova* (die ersten beiden Keplerschen Gesetze der Planetenbewegung) und Galileo Galilei baut sein erstes astronomisches Fernrohr, um den Mond und die Jupiter-Monde zu beobachten.
+> **1609: The Telescope & The Astronomical Revolution**  
+> Johannes Kepler published *Astronomia nova*, establishing his first two laws of planetary motion, while Galileo Galilei built his first astronomical telescope to observe the Moon and the moons of Jupiter.
 
 ---
 
