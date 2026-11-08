@@ -1,8 +1,8 @@
 # NEX-RR-1609 Computer
 
-An open-source processor architecture designed in [Digital](https://github.com/hneemann/Digital) for **Hack Club Half-Life (Week 5: Freestyle / Design Your Own Computer)**.
+An open-source parallel 6-core processor system designed for **Hack Club Half-Life (Week 5: Freestyle / Design Your Own Computer)**.
 
-The project encompasses the evolution from an initial discrete 16-bit concept (`sim_16bit`) to a fully functional, verified **32-bit RISC-V (RV32I)** single-cycle CPU (`sim`), ready for Verilog export and FPGA synthesis.
+The project encompasses the evolution from an initial discrete 16-bit concept (`sim_16bit`) to a verified **32-bit RISC-V (RV32I)** architecture (`sim`), scaled into a multi-core SoC on the **Sipeed Tang Nano 9K (Gowin GW1NR-9 FPGA)** running alongside a custom memory-mapped PSRAM controller, round-robin bus arbiter, dual PS/2 receiver, HDMI framebuffer, and sound generator.
 
 ---
 
@@ -13,23 +13,73 @@ The project encompasses the evolution from an initial discrete 16-bit concept (`
 
 ---
 
-## Architecture Overview (32-Bit RISC-V RV32I)
+## Hardware Architecture & SoC Specifications
 
-The primary processor located in `/sim` is a synchronous 32-bit RISC-V implementation adhering to standard instruction formats and hardware semantics.
+- **Target FPGA:** Sipeed Tang Nano 9K (Gowin GW1NR-LV9QN88PC6/I5).
+- **Compute Cluster:** 6x RV32I RISC-V single-cycle cores running in parallel.
+- **Clock Domain:** 40.5 MHz system clock with positive slack ($F_{\text{max}} \approx 40.76\text{ MHz}$).
+- **Video Subsystem:** 640x480 @ 60 Hz RGB565 HDMI output driven by a custom hardware framebuffer.
+- **Memory:** 8 MB external PSRAM managed via a round-robin hardware arbiter.
+- **Audio:** Custom square-wave chiptune synthesizer routed through HDMI audio packets.
+- **Peripherals:** Dual PS/2 interface (keyboard and mouse) and high-speed SPI MicroSD card reader.
 
-- **Data & Address Width:** 32-bit synchronous data paths.
-- **Instruction Memory Addressing:** Word-addressed Program Counter ($PC \leftarrow PC + 1$).
-- **Register File:**
-  - 32 general-purpose registers (`x0`–`x31`), each 32 bits wide.
-  - Hardware hardwired constant `x0 = 0x00000000` (write-protected).
-  - Dual asynchronous read ports (`Rs1`, `Rs2`) and single synchronous write port (`Rd`).
-- **ALU Subsystem:**
-  - Modular bit-slice design: 1-Bit ALU $\rightarrow$ 16-Bit ALU $\rightarrow$ 32-Bit ALU.
-  - Hardware operations: Addition (`ADD`), Two's complement Subtraction (`SUB`), bitwise `AND`, `OR`, `XOR`, comparison checks, and `Zero`-Flag generation (`Flag_Z`).
-- **Control & Immediate Logic:**
-  - Dedicated `instruction_decoder` extracting `opcode`, `rd`, `funct3`, `rs1`, `rs2`, and `funct7`.
-  - Hardwired `control_unit` resolving control signals for ALU, register write-enable, and branch/jump multiplexers.
-  - Custom `sign_extend` unit resolving I-Type, S-Type, and B-Type immediates (calibrated to word-aligned target calculation).
+---
+
+## FPGA Pinout Configuration (`tangnano9k.cst`)
+
+The following physical pin assignments are configured for the Tang Nano 9K:
+
+### System & Clock
+| Function | FPGA Pin | IO Standard | Notes |
+| :--- | :--- | :--- | :--- |
+| `clk_27m` | 52 | LVCMOS33 | On-board 27 MHz crystal |
+| `btn_rst_n` | 3 | LVCMOS18 | On-board user button S1 (Active LOW) |
+
+### Status LEDs
+| Function | FPGA Pin | Description |
+| :--- | :--- | :--- |
+| `leds[0]` | 10 | Core 0 Bus Grant / Activity (Active LOW) |
+| `leds[1]` | 11 | Core 1 Bus Grant / Activity (Active LOW) |
+| `leds[2]` | 13 | Core 2 Bus Grant / Activity (Active LOW) |
+| `leds[3]` | 14 | Core 3 Bus Grant / Activity (Active LOW) |
+| `leds[4]` | 15 | Core 4 Bus Grant / Activity (Active LOW) |
+| `leds[5]` | 16 | PS/2 Keyboard Data Ready / Activity |
+
+### HDMI Output (Differential TMDS)
+| Function | FPGA Pin | Notes |
+| :--- | :--- | :--- |
+| `tmds_clk_p` / `n` | 69, 68 | HDMI Pixel Clock Differential Pair |
+| `tmds_d_p[0]` / `n` | 71, 70 | Blue / Audio Subpackets |
+| `tmds_d_p[1]` / `n` | 73, 72 | Green / Guard Band |
+| `tmds_d_p[2]` / `n` | 75, 74 | Red |
+
+### MicroSD Card SPI Interface
+| Function | FPGA Pin | SD Pin | Notes |
+| :--- | :--- | :--- | :--- |
+| `sd_cs_n` | 38 | CS / DAT3 | Chip Select (Active LOW) |
+| `sd_mosi` | 37 | DI / CMD | Master Out, Slave In |
+| `sd_miso` | 36 | DO / DAT0 | Master In, Slave Out (Pulled up) |
+| `sd_sck` | 39 | CLK | SPI Clock |
+
+### PS/2 Input Interface
+| Function | FPGA Pin | Notes |
+| :--- | :--- | :--- |
+| `ps2_kbd_clk` | 25 | Keyboard Clock Line |
+| `ps2_kbd_dat` | 26 | Keyboard Data Line |
+| `ps2_mouse_clk` | 27 | Mouse Clock Line |
+| `ps2_mouse_dat` | 28 | Mouse Data Line |
+
+---
+
+## Memory-Mapped I/O (MMIO) Registers
+
+| Address | Mode | Description |
+| :--- | :--- | :--- |
+| `0x00000000 - 0x00095FFF` | R/W | 640x480 RGB565 Framebuffer (PSRAM) |
+| `0x80000000` | W | On-board Status LEDs (Bits 5:0) |
+| `0x80000004` | R | PS/2 Keyboard (Bit 8: Data Ready, Bits 7:0: Scancode) |
+| `0x80000008` | W | Sound Generator (Bit 16: Enable, Bits 15:0: Clock Divider) |
+| `0x80000010` | R | Core Hardware ID (`0` to `5`) |
 
 ---
 
@@ -101,20 +151,10 @@ Dual 16-bit blocks combined to produce full 32-bit results alongside condition i
 
 ---
 
-## Repository Structure
+## Toolchain & Build Instructions
 
-```text
-.
-├── sim/                     # 32-Bit RISC-V (RV32I) Production Circuit
-│   ├── cpu.dig              # Top-level integrated processor schematic
-│   ├── cpu.v                # Synthesizable Verilog export for FPGA synthesis
-│   ├── pc.dig               # Program Counter circuit
-│   ├── registers.dig        # 32-Bit Register file (x0–x31)
-│   ├── alu_32bit.dig        # 32-Bit ALU block
-│   ├── alu_16bit.dig        # 16-Bit ALU block
-│   ├── alu_1bit.dig         # 1-Bit ALU bit-slice
-│   ├── instruction_decoder.dig # RISC-V instruction field splitter
-│   ├── control_unit.dig     # Main control logic
-│   └── sign_extend.dig      # Immediate extraction & sign extension logic
-├── sim_16bit/               # Legacy 16-bit discrete processor design
-└── README.md
+### Prerequisites
+Install the bare-metal RISC-V cross-compiler:
+```bash
+sudo apt update
+sudo apt install gcc-riscv64-unknown-elf

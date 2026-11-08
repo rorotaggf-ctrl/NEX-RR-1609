@@ -1,1 +1,14 @@
 Digital/
+oss-cad-suite/
+oss-cad-suite-*.tgz
+
+# FPGA Build-Artefakte
+*.json
+*.fs
+*.log
+
+# C-Toolchain Artefakte
+*.elf
+*.bin
+*.o
+*.hex
