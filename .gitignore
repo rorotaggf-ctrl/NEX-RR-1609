@@ -12,3 +12,6 @@ oss-cad-suite-*.tgz
 *.bin
 *.o
 *.hex
+
+sync.ps1
+sync.sh
